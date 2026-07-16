@@ -24,6 +24,35 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+def _cek_secrets():
+    """Cek secrets tersedia & lengkap, tampilkan pesan yang jelas kalau belum."""
+    missing = []
+    if "gsheet" not in st.secrets:
+        missing.append("[gsheet]")
+    else:
+        for key in ("sheet_name", "worksheet_name"):
+            if key not in st.secrets["gsheet"]:
+                missing.append(f"[gsheet] {key}")
+    if "gcp_service_account" not in st.secrets:
+        missing.append("[gcp_service_account]")
+
+    if missing:
+        st.error("⚠️ Secrets belum lengkap / belum diatur.")
+        daftar = "\n".join(f"- `{m}`" for m in missing)
+        st.markdown(f"Bagian berikut belum ditemukan di **Settings > Secrets** app ini:\n\n{daftar}")
+        st.markdown(
+            "**Cara memperbaiki (di Streamlit Community Cloud):**\n"
+            "1. Buka dashboard app ini di share.streamlit.io\n"
+            "2. Klik menu titik tiga pada app -> Settings -> tab Secrets\n"
+            "3. Tempel seluruh isi secrets.toml (bagian [gsheet] dan [gcp_service_account]) ke kotak tersebut\n"
+            "4. Klik Save -- app akan restart otomatis\n\n"
+            "Lihat contoh format lengkap di `.streamlit/secrets.toml.example` pada repo."
+        )
+        st.stop()
+
+
+_cek_secrets()
+
 SHEET_NAME = st.secrets["gsheet"]["sheet_name"]          # nama file Google Sheet
 WORKSHEET_NAME = st.secrets["gsheet"]["worksheet_name"]   # nama tab/sheet, misal "Laporan Harian Belanja"
 
