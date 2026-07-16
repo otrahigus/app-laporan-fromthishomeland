@@ -30,9 +30,11 @@ def _cek_secrets():
     if "gsheet" not in st.secrets:
         missing.append("[gsheet]")
     else:
-        for key in ("sheet_name", "worksheet_name"):
-            if key not in st.secrets["gsheet"]:
-                missing.append(f"[gsheet] {key}")
+        gs = st.secrets["gsheet"]
+        if "sheet_id" not in gs and "sheet_name" not in gs:
+            missing.append("[gsheet] sheet_id ATAU sheet_name (isi salah satu)")
+        if "worksheet_name" not in gs:
+            missing.append("[gsheet] worksheet_name")
     if "gcp_service_account" not in st.secrets:
         missing.append("[gcp_service_account]")
 
@@ -53,7 +55,10 @@ def _cek_secrets():
 
 _cek_secrets()
 
-SHEET_NAME = st.secrets["gsheet"]["sheet_name"]          # nama file Google Sheet
+# Boleh pakai salah satu: "sheet_id" (direkomendasikan, lebih stabil)
+# atau "sheet_name" (nama file, bisa ambigu kalau ada nama sama).
+SHEET_ID = st.secrets["gsheet"].get("sheet_id")
+SHEET_NAME = st.secrets["gsheet"].get("sheet_name")
 WORKSHEET_NAME = st.secrets["gsheet"]["worksheet_name"]   # nama tab/sheet, misal "Laporan Harian Belanja"
 
 HEADERS = [
@@ -71,7 +76,18 @@ def get_worksheet():
         st.secrets["gcp_service_account"], scopes=SCOPES
     )
     client = gspread.authorize(creds)
-    sh = client.open(SHEET_NAME)
+
+    if SHEET_ID:
+        sh = client.open_by_key(SHEET_ID)
+    elif SHEET_NAME:
+        sh = client.open(SHEET_NAME)
+    else:
+        st.error(
+            "⚠️ Isi salah satu: `sheet_id` (direkomendasikan) atau `sheet_name` "
+            "di bagian [gsheet] pada Secrets."
+        )
+        st.stop()
+
     try:
         ws = sh.worksheet(WORKSHEET_NAME)
     except gspread.exceptions.WorksheetNotFound:
